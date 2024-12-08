@@ -1,6 +1,7 @@
 import os
 import requests
 import csv
+import dateutil.parser
 
 # Set up your token and headers
 TOKEN = os.environ["GITHUB_TOKEN"]
@@ -26,7 +27,7 @@ query ($username: String!) {
           }
         }
       }
-      commitContributionsByRepository(maxRepositories: 10) {
+      commitContributionsByRepository(maxRepositories: 50) {
         repository {
           nameWithOwner
         }
@@ -37,7 +38,7 @@ query ($username: String!) {
           }
         }
       }
-      pullRequestContributionsByRepository(maxRepositories: 10) {
+      pullRequestContributionsByRepository(maxRepositories: 50) {
         repository {
           nameWithOwner
         }
@@ -51,7 +52,7 @@ query ($username: String!) {
           }
         }
       }
-      issueContributionsByRepository(maxRepositories: 10) {
+      issueContributionsByRepository(maxRepositories: 50) {
         repository {
           nameWithOwner
         }
@@ -83,11 +84,13 @@ if response.status_code == 200:
 
     # Process Pull Request Reviews
     for review in data['data']['user']['contributionsCollection']['pullRequestReviewContributions']['nodes']:
+        time= dateutil.parser.isoparse(review["occurredAt"])
         contributions.append({
             "type": "Code Review",
-            "date": review["occurredAt"],
-            "repo": review["pullRequest"]["repository"]["nameWithOwner"],
-            "details": f"Reviewed PR: {review['pullRequest']['title']} ({review['pullRequest']['url']})"
+            "date":  review["occurredAt"],
+            "month": time.month,
+            "repo": review["pullRequest"]["repository"]["nameWithOwner"].replace('despegar/',""),
+            "count": 1
         })
 
     # Process other contributions (Commits, PRs, Issues)
@@ -97,27 +100,30 @@ if response.status_code == 200:
         ('issueContributionsByRepository', 'Issue'),
     ]:
         for repo in data['data']['user']['contributionsCollection'][category]:
-            repo_name = repo['repository']['nameWithOwner']
+            repo_name = repo['repository']['nameWithOwner'].replace('despegar/',"")
             for contribution in repo['contributions']['nodes']:
+                time = dateutil.parser.isoparse(contribution["occurredAt"])
+
                 contribution_data = {
                     "repo": repo_name,
                     "type": label,
-                    "date": contribution["occurredAt"],
+                    "date":  contribution["occurredAt"],
+                    "month": time.month,
                 }
                 if "commitCount" in contribution:
-                    contribution_data["details"] = f"Commits: {contribution['commitCount']}"
+                    contribution_data["count"] = contribution['commitCount']
                 elif "pullRequest" in contribution:
                     contribution_data[
-                        "details"] = f"PR: {contribution['pullRequest']['title']} ({contribution['pullRequest']['url']})"
+                        "count"] = 1
                 elif "issue" in contribution:
                     contribution_data[
-                        "details"] = f"Issue: {contribution['issue']['title']} ({contribution['issue']['url']})"
+                        "count"] = 1
                 contributions.append(contribution_data)
 
     # Save to CSV
     csv_file = "github_contributions.csv"
     with open(csv_file, mode="w", newline="", encoding="utf-8") as file:
-        writer = csv.DictWriter(file, fieldnames=["date", "type", "repo", "details"])
+        writer = csv.DictWriter(file, fieldnames=["date", "month", "type", "repo", "count"])
         writer.writeheader()
         writer.writerows(contributions)
 
