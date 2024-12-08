@@ -1,0 +1,3 @@
+[submodule "observablehq-github-contributions"]
+	path = observablehq-github-contributions
+	url = https://$GITHUB_TOKEN@github.com/GabrielDyck/observablehq-github-contributions.git
