@@ -89,7 +89,7 @@ if response.status_code == 200:
             "type": "Code Review",
             "date":  review["occurredAt"],
             "month": time.month,
-            "repo": review["pullRequest"]["repository"]["nameWithOwner"].replace('despegar/',""),
+            "repo": review["pullRequest"]["repository"]["nameWithOwner"],
             "count": 1
         })
 
@@ -100,7 +100,7 @@ if response.status_code == 200:
         ('issueContributionsByRepository', 'Issue'),
     ]:
         for repo in data['data']['user']['contributionsCollection'][category]:
-            repo_name = repo['repository']['nameWithOwner'].replace('despegar/',"")
+            repo_name = repo['repository']['nameWithOwner']
             for contribution in repo['contributions']['nodes']:
                 time = dateutil.parser.isoparse(contribution["occurredAt"])
 
